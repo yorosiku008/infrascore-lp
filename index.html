@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>InfraScore JP — AWSインフラ健全性スコアリングSaaS</title>
+  <meta name="description" content="AWS・Kubernetesのインフラ健全性を100点スコアで可視化。可用性・パフォーマンス・セキュリティ・コスト効率の4軸でAIが日本語改善提案。経営層レポート自動生成。">
+  <meta name="keywords" content="AWS,Kubernetes,インフラ監視,健全性,スコア,可用性,パフォーマンス,コスト最適化,日本語">
+  <meta property="og:title" content="InfraScore JP — AWSインフラ健全性スコアリングSaaS">
+  <meta property="og:description" content="インフラの健全性を100点で見える化。AIが日本語で改善アクションを提示。経営層レポートもワンクリックで。">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="ja_JP">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --green:   #059669;
+      --green-d: #047857;
+      --teal:    #0d9488;
+      --gray1:   #111827;
+      --gray2:   #374151;
+      --gray3:   #6b7280;
+      --gray4:   #f3f4f6;
+      --white:   #ffffff;
+    }
+    body { font-family: 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif; color: var(--gray1); background: var(--white); line-height: 1.7; }
+    nav { position: sticky; top: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; padding: 0 5%; height: 64px; background: rgba(255,255,255,.95); backdrop-filter: blur(8px); border-bottom: 1px solid #e5e7eb; }
+    .logo { font-size: 1.2rem; font-weight: 700; color: var(--green); }
+    .nav-cta { background: var(--green); color: #fff; padding: .5rem 1.2rem; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: .9rem; }
+    .nav-cta:hover { background: var(--green-d); }
+    .hero { background: linear-gradient(135deg, #064e3b 0%, #065f46 50%, #047857 100%); color: #fff; padding: 90px 5% 80px; text-align: center; }
+    .hero-badge { display: inline-block; background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.3); color: #a7f3d0; padding: .25rem .9rem; border-radius: 999px; font-size: .85rem; margin-bottom: 1.5rem; }
+    .hero h1 { font-size: clamp(1.8rem, 4vw, 3rem); font-weight: 800; line-height: 1.2; margin-bottom: 1.2rem; }
+    .hero h1 span { color: #6ee7b7; }
+    .hero p { font-size: 1.1rem; color: #d1fae5; max-width: 640px; margin: 0 auto 2.5rem; }
+    .hero-btns { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+    .btn-primary { background: #fff; color: var(--green); padding: .85rem 2rem; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 1rem; }
+    .btn-primary:hover { background: #ecfdf5; }
+    .btn-secondary { background: transparent; color: #fff; border: 2px solid rgba(255,255,255,.4); padding: .85rem 2rem; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 1rem; }
+    .btn-secondary:hover { border-color: #fff; }
+    .trust { display: flex; justify-content: center; gap: 2rem; flex-wrap: wrap; padding: 1.5rem 5%; background: #f0fdf4; border-bottom: 1px solid #bbf7d0; font-size: .9rem; color: var(--gray3); }
+    .trust span::before { content: '✓ '; color: var(--green); font-weight: 700; }
+    /* Score display */
+    .score-section { padding: 80px 5%; background: var(--gray4); }
+    .score-inner { max-width: 900px; margin: 0 auto; text-align: center; }
+    .score-inner h2 { font-size: 1.9rem; font-weight: 800; margin-bottom: .5rem; }
+    .score-sub { color: var(--gray3); margin-bottom: 2.5rem; }
+    .score-display { background: #1e1e2e; border-radius: 16px; padding: 2rem; display: grid; grid-template-columns: 1fr 2fr; gap: 2rem; align-items: center; text-align: left; }
+    .total-score { text-align: center; }
+    .score-num { font-size: 5rem; font-weight: 800; color: #6ee7b7; line-height: 1; }
+    .score-grade { font-size: 1.5rem; color: #fbbf24; font-weight: 700; }
+    .score-label { color: #6b7280; font-size: .85rem; }
+    .axis-list { display: flex; flex-direction: column; gap: 1rem; }
+    .axis { display: flex; flex-direction: column; gap: 4px; }
+    .axis-header { display: flex; justify-content: space-between; font-size: .85rem; }
+    .axis-name { color: #e2e8f0; }
+    .axis-val { color: #6ee7b7; font-weight: 700; }
+    .axis-bar { height: 8px; background: #374151; border-radius: 4px; overflow: hidden; }
+    .axis-fill { height: 100%; border-radius: 4px; }
+    .fill-avail { background: #34d399; width: 68%; }
+    .fill-perf  { background: #60a5fa; width: 79%; }
+    .fill-sec   { background: #a78bfa; width: 84%; }
+    .fill-cost  { background: #fbbf24; width: 65%; }
+    .axis-weight { font-size: .75rem; color: #6b7280; }
+    /* Features */
+    section { padding: 80px 5%; max-width: 1100px; margin: 0 auto; }
+    h2.section-title { font-size: 1.9rem; font-weight: 800; margin-bottom: .5rem; }
+    .section-sub { color: var(--gray3); margin-bottom: 3rem; font-size: 1rem; }
+    .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; }
+    .feature-card { border: 1px solid #e5e7eb; border-radius: 12px; padding: 1.75rem; transition: box-shadow .2s, transform .2s; }
+    .feature-card:hover { box-shadow: 0 8px 32px rgba(5,150,105,.12); transform: translateY(-3px); }
+    .feature-icon { font-size: 2rem; margin-bottom: 1rem; }
+    .feature-card h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: .5rem; }
+    .feature-card p { font-size: .9rem; color: var(--gray2); }
+    /* Pricing */
+    .pricing-wrap { background: var(--gray4); padding: 80px 5%; }
+    .pricing-inner { max-width: 1000px; margin: 0 auto; }
+    .pricing-inner h2 { text-align: center; font-size: 1.9rem; font-weight: 800; margin-bottom: .5rem; }
+    .pricing-sub { text-align: center; color: var(--gray3); margin-bottom: 2.5rem; }
+    .plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; }
+    .plan { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 2rem 1.5rem; text-align: center; }
+    .plan.popular { border-color: var(--green); box-shadow: 0 0 0 2px var(--green); }
+    .plan-badge { background: var(--green); color: #fff; font-size: .75rem; padding: .2rem .7rem; border-radius: 999px; display: inline-block; margin-bottom: .5rem; }
+    .plan h3 { font-size: 1.1rem; margin-bottom: .5rem; }
+    .plan .price { font-size: 1.8rem; font-weight: 800; color: var(--gray1); margin-bottom: .25rem; }
+    .plan .price span { font-size: 1rem; font-weight: 400; color: var(--gray3); }
+    .plan .price-note { font-size: .8rem; color: var(--gray3); margin-bottom: 1rem; }
+    .plan ul { list-style: none; text-align: left; margin: 1rem 0; font-size: .88rem; }
+    .plan ul li { padding: .3rem 0; border-bottom: 1px solid #f3f4f6; }
+    .plan ul li::before { content: '✓ '; color: var(--green); font-weight: 700; }
+    .plan-cta { display: block; background: var(--green); color: #fff; padding: .75rem; border-radius: 8px; text-decoration: none; font-weight: 600; margin-top: 1.5rem; }
+    .plan-cta:hover { background: var(--green-d); }
+    .plan-cta.outline { background: transparent; border: 2px solid var(--green); color: var(--green); }
+    .plan-cta.outline:hover { background: var(--green); color: #fff; }
+    .cta-section { background: linear-gradient(135deg, #064e3b, #0d9488); color: #fff; text-align: center; padding: 80px 5%; }
+    .cta-section h2 { font-size: 2rem; font-weight: 800; margin-bottom: 1rem; }
+    .cta-section p { color: #a7f3d0; max-width: 520px; margin: 0 auto 2rem; }
+    footer { background: var(--gray1); color: var(--gray3); text-align: center; padding: 2rem; font-size: .85rem; }
+    footer a { color: #9ca3af; text-decoration: none; }
+    @media (max-width: 640px) {
+      .hero h1 { font-size: 1.7rem; }
+      .score-display { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">InfraScore JP</div>
+  <a href="mailto:contact@finops-jp.com" class="nav-cta">無料トライアル</a>
+</nav>
+
+<div class="hero">
+  <div class="hero-badge">AI搭載 · AWS / Kubernetes 対応</div>
+  <h1>インフラの健全性を<span>100点</span>で<br>見える化する</h1>
+  <p>可用性・パフォーマンス・セキュリティ・コスト効率の4軸でスコアリング。AIが日本語で改善アクションを提示し、経営層レポートもワンクリックで自動生成します。</p>
+  <div class="hero-btns">
+    <a href="mailto:contact@finops-jp.com" class="btn-primary">無料トライアルを始める →</a>
+    <a href="#features" class="btn-secondary">機能を見る</a>
+  </div>
+</div>
+
+<div class="trust">
+  <span>AWS / Kubernetes ネイティブ対応</span>
+  <span>ReadOnly権限のみ</span>
+  <span>日本語AIレポート</span>
+  <span>MSPマルチテナント対応</span>
+</div>
+
+<!-- Score Demo -->
+<div class="score-section">
+  <div class="score-inner">
+    <h2>リアルタイム ヘルス スコア</h2>
+    <p class="score-sub">4軸スコアリングでインフラの健全状態を一目で把握</p>
+    <div class="score-display">
+      <div class="total-score">
+        <div class="score-num">72</div>
+        <div class="score-grade">B</div>
+        <div class="score-label">総合スコア（前週比 −5）</div>
+      </div>
+      <div class="axis-list">
+        <div class="axis">
+          <div class="axis-header">
+            <span class="axis-name">可用性 <span class="axis-weight">（重み 35%）</span></span>
+            <span class="axis-val">68点</span>
+          </div>
+          <div class="axis-bar"><div class="axis-fill fill-avail"></div></div>
+        </div>
+        <div class="axis">
+          <div class="axis-header">
+            <span class="axis-name">パフォーマンス <span class="axis-weight">（重み 25%）</span></span>
+            <span class="axis-val">79点</span>
+          </div>
+          <div class="axis-bar"><div class="axis-fill fill-perf"></div></div>
+        </div>
+        <div class="axis">
+          <div class="axis-header">
+            <span class="axis-name">セキュリティ <span class="axis-weight">（重み 25%）</span></span>
+            <span class="axis-val">84点</span>
+          </div>
+          <div class="axis-bar"><div class="axis-fill fill-sec"></div></div>
+        </div>
+        <div class="axis">
+          <div class="axis-header">
+            <span class="axis-name">コスト効率 <span class="axis-weight">（重み 15%）</span></span>
+            <span class="axis-val">65点</span>
+          </div>
+          <div class="axis-bar"><div class="axis-fill fill-cost"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Features -->
+<section id="features">
+  <h2 class="section-title">なぜ InfraScore JP が選ばれるか</h2>
+  <p class="section-sub">Datadog・Mackerel の「アラート通知」から「改善アクション」へ</p>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">📊</div>
+      <h3>4軸スコアリング（100点満点）</h3>
+      <p>可用性35% / パフォーマンス25% / セキュリティ25% / コスト効率15%の重み付けスコアで、インフラの健全性を経営指標として可視化します。</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🤖</div>
+      <h3>AI改善提案（日本語）</h3>
+      <p>Claude AIがスコア低下の根本原因を特定し、「production-db を Reserved Instanceに変更 → 月$240削減・スコア+5pt」など具体的アクションを日本語で提示します。</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📄</div>
+      <h3>経営層レポート自動生成</h3>
+      <p>週次・月次の経営層向けPDFレポートをワンクリックで生成。インフラ健全性の推移・リスク・改善効果を経営陣が理解できる表現で自動作成します。</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">☸️</div>
+      <h3>AWS + Kubernetes 統合監視</h3>
+      <p>CloudWatch・Security Hub・Cost Explorerと連携しAWSを丸ごと把握。Kubernetesクラスタのノード・Pod・デプロイメントも同一ダッシュボードで管理。</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🏢</div>
+      <h3>MSPマルチテナント対応</h3>
+      <p>複数顧客のインフラを一元管理するMSP向けダッシュボードを提供。顧客ごとのスコア比較・一括レポート配信でMSP業務を効率化します。</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔔</div>
+      <h3>スコア急落アラート</h3>
+      <p>スコアが閾値（例: 70点）を下回った瞬間にSlack / メールで通知。障害の予兆を事前に検知し、ダウンタイム・コスト超過を防ぎます。</p>
+    </div>
+  </div>
+</section>
+
+<!-- Pricing -->
+<div class="pricing-wrap">
+  <div class="pricing-inner">
+    <h2>料金プラン</h2>
+    <p class="pricing-sub">年払いで20%割引。MSPプランは複数顧客を一括管理。</p>
+    <div class="plans">
+      <div class="plan">
+        <h3>Starter</h3>
+        <div class="price">¥30,000<span>〜/月</span></div>
+        <div class="price-note">〜50ホスト / 1クラスタ</div>
+        <ul>
+          <li>4軸スコアリング</li>
+          <li>AI改善提案（月10件）</li>
+          <li>メールアラート</li>
+          <li>週次レポート</li>
+        </ul>
+        <a href="mailto:contact@finops-jp.com" class="plan-cta outline">無料で始める</a>
+      </div>
+      <div class="plan popular">
+        <div class="plan-badge">人気 No.1</div>
+        <h3>Growth</h3>
+        <div class="price">¥100,000<span>〜/月</span></div>
+        <div class="price-note">〜300ホスト / 5クラスタ</div>
+        <ul>
+          <li>全機能利用可能</li>
+          <li>AI改善提案（無制限）</li>
+          <li>Slack / PagerDuty 通知</li>
+          <li>経営層PDFレポート</li>
+          <li>CSVエクスポート</li>
+          <li>優先サポート</li>
+        </ul>
+        <a href="mailto:contact@finops-jp.com" class="plan-cta">β版を申し込む</a>
+      </div>
+      <div class="plan">
+        <h3>Enterprise / MSP</h3>
+        <div class="price">¥300,000<span>〜/月</span></div>
+        <div class="price-note">300ホスト〜 / 無制限クラスタ</div>
+        <ul>
+          <li>マルチテナント管理</li>
+          <li>カスタムダッシュボード</li>
+          <li>API連携（Webhook）</li>
+          <li>SLA 99.9%保証</li>
+          <li>専任サポート</li>
+        </ul>
+        <a href="mailto:contact@finops-jp.com" class="plan-cta outline">お問い合わせ</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="cta-section">
+  <h2>インフラの健全性を今すぐ数値化する</h2>
+  <p>β版ユーザーを5社限定で募集中。3ヶ月間Growthプランを無料でお試しいただけます。</p>
+  <a href="mailto:contact@finops-jp.com?subject=InfraScore JP 無料トライアル申込" class="btn-primary">無料トライアルを申し込む →</a>
+</div>
+
+<footer>
+  <p>&copy; 2026 InfraScore JP — <a href="mailto:contact@finops-jp.com">contact@finops-jp.com</a></p>
+</footer>
+
+</body>
+</html>
